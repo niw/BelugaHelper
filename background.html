@@ -1,5 +1,67 @@
 <html>
     <script>
+        function Settings(defaults) {
+            this.defaults = defaults;
+            this.storage = chrome.extension.getBackgroundPage().localStorage;
+            this.listenerTabs= {};
+
+            var self = this;
+            chrome.extension.onRequest.addListener(function(request, sender, sendResponse) {
+                var action = request["action"] || request["method"];
+                var key = request["key"];
+                if(action === "initSettings") {
+                    sendResponse(self.all());
+                    self.listenerTabs[sender.tab.id] = sender.tab;
+                } else if(action === "getSetting" && key) {
+                    sendResponse(self.get(key));
+                }
+            });
+        }
+        Settings.prototype = {
+            get: function(key) {
+                var value = this.storage.getItem(key)
+                if(value === null && this.defaults.hasOwnProperty(key)) {
+                    value = this.defaults[key];
+                }
+                return JSON.parse(value);
+            },
+            all: function() {
+                var settings = {};
+                for(var key in this.defaults) {
+                    if(this.defaults.hasOwnProperty(key)) {
+                        settings[key] = this.get(key);
+                    }
+                }
+                return settings;
+            },
+            set: function(key, value) {
+                this.storage.setItem(key, JSON.stringify(value));
+                this.notify(key, value);
+            },
+            remove: function(key) {
+                this.storage.removeItem(key);
+            },
+            notify: function(key, value) {
+                var message = {action: "updateSetting", key: key, value: value};
+                chrome.extension.sendRequest(message);
+                for(var id in this.listenerTabs) {
+                    var tab = this.listenerTabs[id];
+                    try {
+                        chrome.tabs.sendRequest(tab.id, message);
+                    } catch(e) {
+                        delete this.listenerTabs[id];
+                    }
+                }
+            }
+        };
+
+        // Default Settings Object
+        window.settings = new Settings({
+            useShiftEnterToPost: false,
+            disableDesktopNotification: false,
+            durationDesktopNotification: 4
+        });
+
         // Click from Browser Action Icon
         chrome.browserAction.onClicked.addListener(function(tab) {
             chrome.tabs.getAllInWindow(null, function(tabs) {
@@ -22,19 +84,22 @@
         // Request from Content Script
         chrome.extension.onRequest.addListener(function(request, sender, sendResponse) {
             if (request.type === "notification") {
-                var notification = webkitNotifications.createNotification(
-                request.image_url,
-                request.name,
-                request.status);
-                notification.ondisplay = function(event) {
-                    setTimeout(function(){
-                        event.target.cancel();
-                    }, 4000);
+                if (! settings.get("disableDesktopNotification")) {
+                    var notification = webkitNotifications.createNotification(
+                        request.image_url,
+                        request.name,
+                        request.status);
+                    var duration = 1000 * settings.get("durationDesktopNotification");
+                    notification.ondisplay = function(event) {
+                        setTimeout(function(){
+                            event.target.cancel();
+                        }, duration);
+                    }
+                    notification.show();
                 }
-                notification.show();
+                sendResponse();
             }
-
-            sendResponse();
         });
     </script>
 </html>
+<!-- vim:set ts=4 sw=4 expandtab: -->

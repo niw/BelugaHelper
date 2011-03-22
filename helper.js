@@ -1,5 +1,22 @@
 (function() {
-	// Event handlers
+    // Settings
+    var settings = {};
+
+    function initSettings() {
+        chrome.extension.sendRequest({action: "initSettings"}, function(value) {
+            settings = value;
+        });
+        chrome.extension.onRequest.addListener(function(request, sender, sendResponse) {
+            if(request["action"] === "updateSetting") {
+                settings[request["key"]] = request["value"];
+            }
+            sendResponse();
+        });
+    }
+
+    initSettings();
+
+    // Event handlers
     function focus() {
         resetCount();
     }
@@ -10,11 +27,13 @@
 
     function keydown(event) {
         if (event.keyIdentifier === "Enter") {
-            if (!(event.ctrlKey || event.metaKey || event.altKey || event.shiftKey)) {
-                var cb = document.getElementById("composebutton");
-                cb.click();
+            var withModifierKey = event.ctrlKey || event.metaKey || event.altKey || event.shiftKey;
+            var useShiftEnterToPost = settings["useShiftEnterToPost"];
+            if (useShiftEnterToPost && withModifierKey || !useShiftEnterToPost && !withModifierKey) {
+                var cf = document.getElementById("composeform");
+                cf.submit();
                 last_update_id++;
-                // workaround. make sure for clearing
+                // make sure for clearing
                 setTimeout(function() {
                     document.getElementById("composetext").value = "";
                 }, 0);
@@ -39,7 +58,6 @@
             showNotification({"image_url": img_url, "name": name, "status": status});
         }
     }
-
 
 
     // Common functions
@@ -73,3 +91,4 @@
     document.addEventListener("DOMNodeInserted", update, false);
     document.getElementById("composebutton").addEventListener("click", click, false);
 })();
+// vim:set ts=4 sw=4 expandtab:

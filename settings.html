@@ -1,0 +1,125 @@
+<!doctype html>
+<html>
+<head>
+<title>Beluga Helper</title>
+
+<style>/* {{{ */
+html, body{
+  border: 0;
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+body {
+  font-size: 12px;
+  font-family: "Helvetica Neue", "Lucida Grande", Arial, Helvetica, "Hiragino Kaku Gothic Pro", "ヒラギノ角ゴ Pro W3", Meiryo, sans-serif;
+  font-weight: lighter;
+  background: #fff;
+  color: #141414;
+}
+a, a:visited {
+  color: #666;
+  text-decoration: none;
+}
+a:hover {
+  background: #fff;
+  color: #0571A0;
+}
+ul, ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+li {
+  margin: 0;
+  padding: 0;
+}
+#wrapper {
+  margin: 0 auto;
+  padding: 20px 0;
+  width: 600px;
+}
+#wrapper h1 {
+  font-weight: 100;
+  font-size: 50px;
+  letter-spacing: -1px;
+  line-height: 80%;
+  color: #666;
+}
+#wrapper h2 {
+  font-weight: 200;
+  font-size: 20px;
+}
+#settings li {
+  margin: 0 0 10px 0;
+}
+#settings .description {
+  font-size: 10px;
+  color: #666;
+  margin-left: 20px;
+}
+/* }}} */</style>
+
+<script type="text/javascript">// {{{
+(function() {
+  var background = chrome.extension.getBackgroundPage();
+  var settings = background.settings;
+
+  // TODO non checkbox form item.
+  window.init = function() {
+    // Setup for input
+    var items = document.getElementsByTagName("input");
+    for(var i=0; i<items.length; i++) {
+      var item = items[i];
+      var key = item.getAttribute("id");
+
+      item.checked = settings.get(key);
+      item.addEventListener("click", function(event) {
+        var key = event.target.id;
+        var item = event.target;
+        settings.set(key, item.checked);
+      });
+    }
+    // Setup for select
+    var key = "durationDesktopNotification";
+    var select = document.getElementById(key);
+    select.value = settings.get(key);
+    select.addEventListener("change", function(event) {
+        var key = event.target.id;
+        var value = event.target.value;
+        settings.set(key, value);
+    });
+  }
+})();
+// }}}</script>
+</head>
+
+<body onload="init();">
+<div id="wrapper">
+  <h1>Beluga Helper</h1>
+  <h2>Settings</h2>
+  <ul id="settings">
+    <li>
+      <input type="checkbox" id="useShiftEnterToPost" />
+      <label for="useShiftEnterToPost">Use Shift+Enter to post</label><br />
+      <div class="description">By default, Enter to post, Shift+Enter to new line.</div>
+    </li>
+    <li>
+      <input type="checkbox" id="disableDesktopNotification" />
+      <label for="disableDesktopNotification">Disable desktop notification</label><br />
+    </li>
+    <li>
+      Duration for desktop notification:&nbsp;
+      <select id="durationDesktopNotification">
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="4">4</option>
+        <option value="6">6</option>
+        <option value="8">8</option>
+      </select>&nbsp;sec
+    </li>
+  </ul>
+</div>
+</body>
+</html>
+<!-- vim:set ts=2 sw=2 expandtab foldmethod=marker: -->
