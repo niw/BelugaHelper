@@ -52,13 +52,19 @@
 
             // show notification
             var lu = getLastUpdateElement();
-            var img_url = lu.getElementsByClassName("userimg")[0].src;
-            var name = lu.getElementsByClassName("uname")[0].textContent;
-            var status = lu.getElementsByClassName("ustatus")[0].textContent;
+            if (is_mobile()) {
+                var img_url = lu.getElementsByClassName("user-tile upic")[0].childNodes[1].src;
+                var name = lu.getElementsByClassName("text")[0].childNodes[2].textContent;
+                var status = lu.getElementsByClassName("utext")[0].textContent;
+            } else {
+                var img_url = lu.getElementsByClassName("userimg")[0].src;
+                var name = lu.getElementsByClassName("uname")[0].textContent;
+                var status = lu.getElementsByClassName("ustatus")[0].textContent;
+            }
             showNotification({"image_url": img_url, "name": name, "status": status});
+            openUrlFromText(status);
         }
     }
-
 
     // Common functions
     function resetCount() {
@@ -71,9 +77,25 @@
         chrome.extension.sendRequest(msg);
     }
 
+    function openUrlFromText(text) {
+        var enableAutoOpenUrl = settings["enableAutoOpenUrl"];
+        if (enableAutoOpenUrl) {
+            var urls = text.match(/https?:\/\/\S+/g);
+            if (urls) {
+                for (var i = 0, n = urls.length; i < n; i++) {
+                    chrome.extension.sendRequest({type:"openurl", url:urls[i]});
+                }
+            }
+        }
+    }
+
     function getLastUpdateElement() {
         var ru = document.getElementById("realupdates");
-        return ru.getElementsByClassName("update")[0];
+        if (is_mobile()) {
+            return ru.getElementsByClassName("update-item")[0];
+        } else {
+            return ru.getElementsByClassName("update")[0];
+        }
     }
 
     function getLastUpdateId() {
@@ -81,9 +103,16 @@
         return lu.id;
     }
 
+    function is_mobile() {
+        var fl = document.getElementById("footer-links");
+        return (fl==null) ? false : true;
+    }
+
+
     var base_title = document.title;
     var last_update_id = getLastUpdateId();
     var unread_count = 0;
+
 
     // Attach events
     window.addEventListener("focus", focus, false);
